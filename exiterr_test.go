@@ -43,7 +43,7 @@ func TestExitHandler(t *testing.T) {
 		exitChan := make(chan int)
 		eh := exiterr.NewExitHandler(strWriter, func(code int) {
 			exitChan <- code
-		})
+		}, exiterr.DefaultSkipOutput)
 
 		go eh.Exit(test.err)
 

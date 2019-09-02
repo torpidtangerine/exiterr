@@ -10,22 +10,23 @@ import (
 type ExitHandler struct {
 	output     io.StringWriter
 	handleExit func(int)
+	skipOutput func(error) bool
 }
 
 // NewExitHandler creates an ExitHandler
-func NewExitHandler(output io.StringWriter, handleExit func(int)) *ExitHandler {
+func NewExitHandler(output io.StringWriter, handleExit func(int), skipOutput func(error) bool) *ExitHandler {
 	return &ExitHandler{
 		output:     output,
 		handleExit: handleExit,
+		skipOutput: skipOutput,
 	}
 }
 
 // Exit calls
 func (eh *ExitHandler) Exit(err error) {
 	if err != nil {
-		if err != context.Canceled {
-			_, _ = eh.output.WriteString(err.Error())
-			_, _ = eh.output.WriteString("\n")
+		if !eh.skipOutput(err) {
+			_, _ = eh.output.WriteString(err.Error() + "\n")
 		}
 		eh.handleExit(1)
 	} else {
@@ -33,8 +34,13 @@ func (eh *ExitHandler) Exit(err error) {
 	}
 }
 
+// DefaultSkipOutput returns true if err == context.Canceled
+func DefaultSkipOutput(err error) bool {
+	return err == context.Canceled
+}
+
 // Default is the default exit handler that writes to stderr, and calls os.Exit
-var Default = NewExitHandler(os.Stderr, os.Exit)
+var Default = NewExitHandler(os.Stderr, os.Exit, DefaultSkipOutput)
 
 // Exit calls os.Exit
 var Exit = Default.Exit
